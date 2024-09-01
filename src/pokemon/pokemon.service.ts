@@ -1,3 +1,4 @@
+import { PaginationDto } from './../common/dto/pagination.dto';
 import { BadRequestException, Injectable, InternalServerErrorException, Ip, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
@@ -6,12 +7,8 @@ import { Pokemon } from './entities/pokemon.entity';
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 
-
-
-
 @Injectable()
 export class PokemonService {
-
 
   constructor(
     @InjectModel(Pokemon.name)
@@ -29,9 +26,11 @@ export class PokemonService {
 
   }
 
-  async findAll() {
-    const pokemons = await this.pokemonModel.find()
-    return pokemons;
+  findAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+    return this.pokemonModel.find()
+      .limit(limit)
+      .skip(offset)
   }
 
   async findOne(term: string) {
@@ -42,8 +41,14 @@ export class PokemonService {
       pokemon = await this.pokemonModel.findOne({ no: term });
     }
 
+    //MongoID
     if (!pokemon && isValidObjectId(term)) {
       pokemon = await this.pokemonModel.findById(term);
+    }
+
+    // Name
+    if (!pokemon) {
+      pokemon = await this.pokemonModel.findOne({ name: term.toLowerCase().trim() })
     }
 
     if (!pokemon)
